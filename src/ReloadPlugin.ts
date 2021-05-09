@@ -17,12 +17,12 @@ export default class ReloadPlugin extends AbstractPlugin {
   private manifestPath: string
   constructor({port, manifest}: Options) {
     super();
-    this.port = port || 9090 
+    this.port = port || 9090
     this.manifestPath = manifest || null
   }
   sourceFactory(...sources): Source {
     return new ConcatSource(...sources)
-  } 
+  }
   watcher (comp, done) {
     if(!this.server && this.manifestPath) {
       this.server = new Server(this.port)
@@ -44,7 +44,7 @@ export default class ReloadPlugin extends AbstractPlugin {
       let [filename] = chunk.files;
       if (/\.js$/.test(filename)) {
         let source = template(client)({
-          filename, 
+          filename,
           id: chunk.id,
           name: chunk.name || null,
           WSHost
@@ -62,9 +62,9 @@ export default class ReloadPlugin extends AbstractPlugin {
         WSHost
       })
       this.manifest.background = {scripts:[scripts], persistent: false}
-      assets[scripts] = { 
-        source: () => source, 
-        size: () => source.length 
+      assets[scripts] = {
+        source: () => source,
+        size: () => source.length
       }
     }
     comp.assets = Object.assign({}, comp.assets, assets)
@@ -89,7 +89,7 @@ export default class ReloadPlugin extends AbstractPlugin {
         }
       }
     }.bind(this))
-  
+
     let manifest = comp.fileTimestamps[this.manifestPath]
     if ((manifestTimestamp || 1) < (manifest || Infinity)) {
       manifestTimestamp = Date.now();
@@ -100,7 +100,12 @@ export default class ReloadPlugin extends AbstractPlugin {
   }
   generate(comp, done) {
     if(!this.manifest) return done()
-    comp.fileDependencies.push(this.manifestPath)
+    const {fileDependencies} = comp;
+    if (fileDependencies instanceof Set) {
+      fileDependencies.add(this.manifestPath)
+    } else {
+      fileDependencies.push(this.manifestPath)
+    }
     let source = JSON.stringify(this.manifest)
     comp.assets['manifest.json'] = {
       source: () => source,
@@ -108,7 +113,7 @@ export default class ReloadPlugin extends AbstractPlugin {
     }
     return done()
   }
-  apply(compiler) { 
+  apply(compiler) {
     compiler.plugin("watch-run", (comp, done) => this.watcher(comp, done))
     compiler.plugin("compile", (comp) => this.compile(comp))
     compiler.plugin('compilation',
